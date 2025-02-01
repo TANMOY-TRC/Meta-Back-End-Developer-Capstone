@@ -1,0 +1,85 @@
+{% extends 'restaurant/base.html' %}
+{% load static %}
+
+{% block content %}
+<section>
+  <article>
+    <h1>All Reservations</h1>
+    <div class="row">
+      <pre>
+        <table id="reservations" style="font-size: large;">
+        </table>
+      </pre>
+    </div>
+  </article>
+</section>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const authToken = localStorage.getItem("auth-token");
+
+    if (!authToken) {
+      window.location.href = "{% url 'login' %}";
+    } else {
+      getReservations();
+    }
+  })
+
+  function getReservations() {
+    const authToken = localStorage.getItem("auth-token");
+    const table = document.getElementById("reservations");
+
+    fetch(`${apiDomain}/api/bookings/tables/`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Token ${authToken}`,
+        'Content-Type': 'application/json',
+      },
+    })
+      .then(response => response.json())
+      .then(data => {
+        let rows = `<tr style="font-weight: bold;">
+                      <td style="width: 100px;">ID</td>
+                      <td style="width: 250px;">NAME</td>
+                      <td style="width: 150px;">GUEST COUNT</td>
+                      <td style="width: 150px;">BOOKING DATE</td>
+                      <td style="width: 150px;">BOOKING TIME</td>
+                    </tr>
+                    <tr>
+                      <td>-------</td>
+                      <td>------------</td>
+                      <td>------------</td>
+                      <td>------------</td>
+                      <td>------------</td>
+                    </tr>`;
+
+        data.forEach(booking => {
+          rows += `<tr>
+                      <td>${booking.id}</td>
+                      <td>${booking.name}</td>
+                      <td>${booking.no_of_guests}</td>
+                      <td>${booking.booking_date}</td>
+                      <td>${formatTime(booking.booking_slot)}</td>
+                    </tr>`
+        });
+
+        if (rows == '') {
+          table.innerHTML = "No bookings"
+        } else {
+          table.innerHTML += rows;
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+      });
+  }
+
+  function formatTime(time) {
+    const ampm = time < 12 ? 'AM' : 'PM';
+    const t = time < 12 ? time : time > 12 ? time - 12 : time;
+    const prefix = t < 10 ? '0' : '';
+    const label = `${prefix}${t}:00 ${ampm}`;
+    return label;
+  }
+</script>
+{% endblock %}

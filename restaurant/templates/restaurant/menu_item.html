@@ -1,0 +1,187 @@
+{% extends 'restaurant/base.html' %}
+{% load static %}
+
+{% block content %}
+<section>
+  <article>
+    <h1>Menu item</h1>
+    <span>
+      <a href="{% url 'home' %}">Home</a> / <a href="{% url 'menu' %}">Menu</a> / <span id="item-name-url"></span>
+    </span>
+    <div class="row">
+      <div class="column">
+        <div id="item-details">
+          <h2 id="item-name"></h2>
+          <p>Price: $ <span id="item-price"></span></p>
+          <p>Inventory: <span id="item-inventory"></span></p>
+        </div>
+        <form method="post" id="item-post-form">
+          {% csrf_token %}
+          <h2>Menu Item</h2>
+          <p>
+            <label for="title">Item Title:</label>
+            <input type="text" name="title" id="title">
+          </p>
+          <p>
+            <label for="price">Item Price:</label>
+            <input type="number" name="price" id="price">
+          </p>
+          <p>
+            <label for="inventory">Item Inventory:</label>
+            <input type="number" name="inventory" id="inventory">
+          </p>
+          <p>
+            <label for="form-post"></label>
+            <button type="button" id="item-modify">Modify Item</button>
+            <br>
+            <button type="button" id="item-delete" style="background-color: #990000;">Delete Item</button>
+            <p id="form-error" style="color: red; text-align: center;"></p>
+            <p id="form-success" style="color: green; text-align: center;"></p>
+          </p>
+        </form>
+      </div>
+      <div class="column item-image">
+        <img src="{% static 'restaurant/img/menu_items/' %}" alt="" id="item-image" />
+      </div>
+    </div>
+  </article>
+</section>
+
+<script>
+  const itemId = {{ id }};
+
+  const formTitle = document.getElementById("title");
+  const formPrice = document.getElementById("price");
+  const formInventory = document.getElementById("inventory");
+
+  const itemNameUrl = document.getElementById("item-name-url");
+  const itemName = document.getElementById("item-name");
+  const itemPrice = document.getElementById("item-price");
+  const itemInventory = document.getElementById("item-inventory");
+
+  const itemImage = document.getElementById("item-image");
+
+  getItemDetails();
+
+  document.addEventListener("DOMContentLoaded", function () {
+    const authToken = localStorage.getItem("auth-token");
+    const itemDetails = document.getElementById("item-details");
+    const itemForm = document.getElementById("item-post-form");
+
+    if (authToken) {
+      itemDetails.style.display = 'none';
+      itemForm.style.display = 'block';
+    } else {
+      itemDetails.style.display = 'block';
+      itemForm.style.display = 'none';
+    }
+  })
+
+  function getItemDetails() {
+
+    fetch(`${apiDomain}/api/menu-items/${itemId}/`)
+      .then(response => {
+        if (response.status === 200) {
+          return response.json();
+        } else {
+          window.location.href = '/menu/';
+          throw new Error("Menu item not found.");
+        }
+      })
+      .then(data => {
+        const title = data.title;
+        const price = data.price;
+        const inventory = data.inventory;
+
+        formTitle.value = title;
+        formPrice.value = price;
+        formInventory.value = inventory;
+
+        itemNameUrl.innerText = title;
+        itemName.innerText = title;
+        itemPrice.innerText = price;
+        itemInventory.innerText = inventory;
+
+        itemImage.src += `${data.title}.jpg`;
+        console.log(itemImage.src);
+        itemImage.alt = data.title;
+      }).catch(error => {
+        console.log('Error:', error);
+      });
+  }
+
+  document.getElementById('item-modify').addEventListener('click', function (e) {
+    e.preventDefault();
+    const authToken = localStorage.getItem("auth-token");
+    const errorBox = document.getElementById("form-error");
+    const successBox = document.getElementById("form-success");
+
+    errorBox.innerText = "";
+    successBox.innerText = "";
+
+    if (!formTitle || !formPrice || !formInventory) {
+      errorBox.innerText = "Ensure All the Fields are Filled";
+      return;
+    }
+
+    fetch(`${apiDomain}/api/menu-items/${itemId}/`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Token ${authToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        title: formTitle.value,
+        price: formPrice.value,
+        inventory: formInventory.value
+      }),
+    })
+      .then(response => {
+        if (response.status === 200) {
+          successBox.innerText = "Modification Successfull";
+          return;
+        } else {
+          errorBox.innerText = "Error: Item Couldn't be Modified";
+          throw new Error(`Failed to Add. Status code: ${response.status}`);
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+      });
+  });
+
+  document.getElementById('item-delete').addEventListener('click', function (e) {
+    e.preventDefault();
+    const authToken = localStorage.getItem("auth-token");
+    const errorBox = document.getElementById("form-error");
+    const successBox = document.getElementById("form-success");
+
+    errorBox.innerText = "";
+    successBox.innerText = "";
+
+    if (!confirm("Confirm Delete")) {
+      return;
+    }
+
+    fetch(`${apiDomain}/api/menu-items/${itemId}/`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Token ${authToken}`,
+        'Content-Type': 'application/json',
+      },
+    })
+      .then(response => {
+        if (response.status === 204) {
+          window.location.href = '/menu/';
+          return;
+        } else {
+          errorBox.innerText = "Error: Item Couldn't be Deleted";
+          throw new Error(`Failed to Add. Status code: ${response.status}`);
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+      });
+  });
+</script>
+{% endblock %}

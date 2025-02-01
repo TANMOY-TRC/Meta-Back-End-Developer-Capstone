@@ -1,0 +1,178 @@
+{% extends 'restaurant/base.html' %}
+{% load static %}
+
+{% block content %}
+<section>
+  <article>
+    <h1>Make a Reservation</h1>
+    <div class="row">
+      <div class="column">
+        {% csrf_token %}
+        <form method="POST" id="form">
+          <p>
+            <label for="name">Name:</label>
+            <input type="text" placeholder="Your Name" maxlength="200" id="name">
+          </p>
+          <p>
+            <label for="no_of_guest">No of Guests:</label>
+            <input type="number" id="no_of_guest">
+          </p>
+          <p>
+            <label for="booking_date">Reservation Date:</label>
+            <input type="date" id="booking_date">
+          </p>
+          <p>
+            <label for="booking_slot">Reservation Time:</label>
+            <select id="booking_slot" required="">
+              <option value="0" disabled>Select Time</option>
+            </select>
+          </p>
+          <br>
+          <button type="button" id="button">Reserve</button>
+          <p id="form-error" style="color: red; text-align: center;"></p>
+        </form>
+      </div>
+
+      <div class="column">
+        <h2>Bookings For <span id="today"></span></h2>
+        <pre>
+          <table id="bookings" style="font-size: large;">
+          </table>
+        </pre>
+      </div>
+    </div>
+
+  </article>
+</section>
+<script>
+  const date = new Date();
+  document.getElementById('booking_date').value = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
+  document.getElementById('booking_date').addEventListener('change', getBookings);
+
+  document.addEventListener("DOMContentLoaded", function () {
+    const authToken = localStorage.getItem("auth-token");
+
+    if (!authToken) {
+      window.location.href = "{% url 'login' %}";
+    } else {
+      getBookings();
+    }
+  })
+
+  function getBookings() {
+    const authToken = localStorage.getItem("auth-token");
+
+    const date = document.getElementById('booking_date').value;
+    document.getElementById('today').innerHTML = date;
+
+    const formError = document.getElementById('form-error');
+    formError.innerText = "";
+
+    const table = document.getElementById("bookings");
+
+    let reserved_slots = [];
+
+    fetch(`${apiDomain}/api/bookings/tables/?booking_date=${date}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Token ${authToken}`,
+        'Content-Type': 'application/json',
+      },
+    })
+      .then(response => response.json())
+      .then(data => {
+        reserved_slots = [];
+        bookings = `<tr style="font-weight: bold;">
+                      <td style="width: 250px;">NAME</td>
+                      <td style="width: 100px;">BOOKING TIME</td>
+                    </tr>
+                    <tr>
+                      <td>------------</td>
+                      <td>------------</td>
+                    </tr>`;
+
+        data.forEach(item => {
+          reserved_slots.push(item.booking_slot);
+          bookings += `<tr><td>${item.name}</td><td>${formatTime(item.booking_slot)}</td></tr>`;
+        });
+
+        let slot_options = '<option value="0" disabled>Select time</option>';
+        for (let i = 10; i <= 20; i++) {
+          const label = formatTime(i);
+          if (reserved_slots.includes(i)) {
+            slot_options += `<option value=${i} disabled>${label}</option>`;
+          } else {
+            slot_options += `<option value=${i}>${label}</option>`;
+          }
+        }
+
+        document.getElementById('booking_slot').innerHTML = slot_options;
+        if (bookings == '') {
+          table.innerHTML = "No bookings"
+        } else {
+          table.innerHTML = bookings;
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+      });
+  }
+
+  function formatTime(time) {
+    const ampm = time < 12 ? 'AM' : 'PM';
+    const t = time < 12 ? time : time > 12 ? time - 12 : time;
+    const prefix = t < 10 ? '0' : '';
+    const label = `${prefix}${t}:00 ${ampm}`;
+    return label;
+  }
+
+  document.getElementById('button').addEventListener('click', function (e) {
+    e.preventDefault();
+
+    const authToken = localStorage.getItem("auth-token");
+
+    const name = document.getElementById('name').value;
+    const noOfGuest = document.getElementById('no_of_guest').value;
+    const bookingDate = document.getElementById('booking_date').value;
+    const bookingSlot = document.getElementById('booking_slot').value;
+
+    const formError = document.getElementById('form-error');
+    formError.innerText = "";
+
+    if (!name || !bookingDate || !noOfGuest || bookingSlot === '0') {
+      formError.innerText = "Ensure all the Fields are Filled Correctly";
+      return;
+    }
+
+    if (bookingSlot === '') {
+      formError.innerText = "Sorry! No Slot Available for This Date";
+      return;
+    }
+
+    const formdata = {
+      name: name,
+      no_of_guests: noOfGuest,
+      booking_date: bookingDate,
+      booking_slot: bookingSlot,
+    }
+
+    fetch(`${apiDomain}/api/bookings/tables/`, {
+      method: 'post',
+      headers: {
+        'Authorization': `Token ${authToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(formdata),
+    })
+      .then(response => response.text())
+      .then(data => {
+        getBookings();
+        document.getElementById('name').value = '';
+        document.getElementById('no_of_guest').value = '';
+      })
+      .catch(error => {
+        console.error('Error:', error);
+      });
+  })
+</script>
+{% endblock %}

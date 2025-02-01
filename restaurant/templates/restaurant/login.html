@@ -1,0 +1,153 @@
+{% extends 'restaurant/base.html' %}
+{% load static %}
+
+{% block content %}
+
+
+<section>
+  <article>
+    <div class="row">
+      <div class="column">
+        <form method="post">
+          {% csrf_token %}
+          <h2>Login</h2>
+          <p>
+            <label for="username">Username:</label>
+            <input type="text" name="username" id="username">
+          </p>
+          <p>
+            <label for="password">Password:</label>
+            <input type="password" name="password" id="password">
+          </p>
+          <p>
+            <label for="login-form-button"></label>
+            <button type="button" id="login-form-button">Login</button>
+          <p id="login-form-error" style="color: red; text-align: center;"></p>
+          </p>
+        </form>
+      </div>
+      <div class="column">
+        <form method="post">
+          {% csrf_token %}
+          <h2>Sign Up</h2>
+          <p>
+            <label for="email-signup">Email:</label>
+            <input type="email" name="email-signup" id="email-signup">
+          </p>
+          <p>
+            <label for="username-signup">Username:</label>
+            <input type="text" name="username-signup" id="username-signup">
+          </p>
+          <p>
+            <label for="password-signup">Password:</label>
+            <input type="password" name="password-signup" id="password-signup">
+          </p>
+          <p>
+            <label for="signup-form-button"></label>
+            <button type="button" id="signup-form-button">Sign Up</button>
+          <p id="signup-form-error" style="color: red; text-align: center;"></p>
+          <p id="signup-form-success" style="color: green; text-align: center;"></p>
+          </p>
+        </form>
+      </div>
+    </div>
+  </article>
+</section>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const authToken = localStorage.getItem("auth-token");
+
+    if (authToken) {
+      window.location.href = "{% url 'home' %}";
+    }
+  })
+
+  document.getElementById('login-form-button').addEventListener('click', function (e) {
+    e.preventDefault();
+    const username = document.getElementById("username").value;
+    const password = document.getElementById("password").value;
+    const errorBox = document.getElementById("login-form-error");
+
+    if (!username || !password) {
+      errorBox.innerText = "Username or Password in Empty";
+      return;
+    }
+
+    fetch(`${apiDomain}/auth/token/login/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        username: username,
+        password: password
+      }),
+    })
+      .then(response => {
+        if (response.status === 200) {
+          return response.json();
+        } else {
+          errorBox.innerText = "Invalid Username or Password";
+          throw new Error(`Failed to login. Status code: ${response.status}`);
+        }
+      })
+      .then(data => {
+        const token = data.auth_token;
+
+        localStorage.setItem("auth-token", token);
+        localStorage.setItem("username", username);
+
+        // Nevigate Back
+        window.location.href = document.referrer;
+      })
+      .catch(error => {
+        console.error('Error:', error);
+      });
+  });
+
+  document.getElementById('signup-form-button').addEventListener('click', function (e) {
+    e.preventDefault();
+    const email = document.getElementById("email-signup").value;
+    const username = document.getElementById("username-signup").value;
+    const password = document.getElementById("password-signup").value;
+    const errorBox = document.getElementById("signup-form-error");
+    const successBox = document.getElementById("signup-form-success");
+
+    errorBox.innerText = "";
+    successBox.innerText = "";
+
+    if (!email || !username || !password) {
+      errorBox.innerText = "Ensure All the Fields are Filled";
+      return;
+    }
+
+    fetch(`${apiDomain}/auth/users/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email: email,
+        username: username,
+        password: password
+      }),
+    })
+      .then(response => {
+        if (response.status === 201) {
+          return response.json();
+        } else {
+          errorBox.innerText = "User Exists or Passwork is Weak";
+          throw new Error(`Failed to signup. Status code: ${response.status}`);
+        }
+      })
+      .then(data => {
+        successBox.innerText = "Sign Up Successfull";
+      })
+      .catch(error => {
+        console.error('Error:', error);
+      });
+  });
+
+</script>
+{% endblock %}

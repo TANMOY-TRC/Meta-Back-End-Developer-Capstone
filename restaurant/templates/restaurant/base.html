@@ -1,0 +1,44 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="author" content="Little Lemon">
+  <meta name="description"
+    content="Based in Chicago, Illinois, Little Lemon is a family-owned Mediterranean restaurant
+    offering traditional recipes with a modern twist. Drawing inspiration from Italian, Greek,
+    and Turkish cultures, the restaurant offers a seasonal menu of 12-15 rotating items. Owned
+    by two Italian brothers, Mario and Adrian, it features a rustic atmosphere with moderate
+    prices, making it a popular destination for meals throughout the day.">
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+  <title>Little Lemon</title>
+
+  <!-- Load favicon -->
+  <link rel="shortcut icon" type="image/png" href="{% static 'restaurant/img/favicon.ico' %}" />
+
+  <!-- Include your CSS files here -->
+  <link rel="preload" as="style" href="{% static 'restaurant/css/style.css' %}" onload="this.rel = 'stylesheet'" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Karla&family=Markazi+Text:wght@500&display=swap"
+    rel="stylesheet" />
+
+  <script src="{% static 'restaurant/js/javascript.js' %}" type="text/javascript"></script>
+</head>
+
+<body>
+  <!--Header content-->
+  {% include 'restaurant/partials/_header.html' %}
+
+  <main>{% block content %} {% endblock %}</main>
+
+  <!--Footer content-->
+  {% include 'restaurant/partials/_footer.html' %}
+</body>
+
+</html>
