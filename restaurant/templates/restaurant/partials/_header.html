@@ -1,0 +1,59 @@
+{% load static %}
+
+<header>
+  <img src="{% static 'restaurant/img/logo.png' %}" />
+  <div id="login-button" onclick="handleLoginButton()">Login / Register</div>
+</header>
+<nav>
+  <ul>
+    <li><a href="{% url 'home' %}">Home</a></li>
+    <li><a href="{% url 'about' %}">About</a></li>
+    <li><a href="{% url 'menu' %}">Menu</a></li>
+    <li><a href="{% url 'book' %}">Book</a></li>
+    <li><a href="{% url 'bookings' %}">Reservations</a></li>
+  </ul>
+</nav>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const authToken = localStorage.getItem("auth-token");
+    const username = localStorage.getItem("username");
+    const loginButton = document.getElementById("login-button");
+
+    if (authToken) {
+      loginButton.innerText = `Logout (${username})`;
+    } else {
+      loginButton.innerText = "Login / Register";
+    }
+  })
+
+  function handleLoginButton() {
+    const authToken = localStorage.getItem("auth-token");
+    const username = localStorage.getItem("username");
+    const loginButton = document.getElementById("login-button");
+
+    if (authToken) {
+      fetch(`${apiDomain}/auth/token/logout/`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Token ${authToken}`,
+          'Content-Type': 'application/json',
+        },
+      })
+        .then(response => {
+          if (response.status == 204) {
+            localStorage.removeItem("auth-token");
+            localStorage.removeItem("username");
+
+            location.reload();
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+        });
+
+    } else {
+      window.location.href = "{% url 'login' %}";
+    }
+  }
+</script>

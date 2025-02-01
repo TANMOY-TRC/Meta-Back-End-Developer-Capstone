@@ -1,0 +1,122 @@
+{% extends 'restaurant/base.html' %}
+{% load static %}
+
+{% block content %}
+<section>
+  <article>
+    <h1>Menu</h1>
+    <div class="row">
+      <div class="column">
+        <pre>
+          <table id="menu" style="font-size: larger;">
+          </table>
+        </pre>
+      </div>
+      <div class="column">
+        <form method="post" id="item-post-form">
+          {% csrf_token %}
+          <h2>Add Menu Item</h2>
+          <p>
+            <label for="title">Item Title:</label>
+            <input type="text" name="title" id="title">
+          </p>
+          <p>
+            <label for="price">Item Price:</label>
+            <input type="number" name="price" id="price">
+          </p>
+          <p>
+            <label for="inventory">Item Inventory:</label>
+            <input type="number" name="inventory" id="inventory">
+          </p>
+          <p>
+            <label for="form-post"></label>
+            <button type="button" id="form-post">Add Item</button>
+            <p id="form-post-error" style="color: red; text-align: center;"></p>
+          </p>
+        </form>
+      </div>
+    </div>
+  </article>
+</section>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const authToken = localStorage.getItem("auth-token");
+    const itemForm = document.getElementById("item-post-form");
+
+    if (authToken) {
+      itemForm.style.display = 'block';
+    } else {
+      itemForm.style.display = 'none';
+    }
+  })
+
+  getMenu();
+
+  function getMenu() {
+    fetch(`${apiDomain}/api/menu-items/`)
+      .then(response => response.json())
+      .then(data => {
+        menu = `<tr style="font-weight: bold;">
+                  <td style="width: 200px">Item</td>
+                  <td style="width: 100px">Price</td>
+                </tr>
+                <tr>
+                  <td>----------</td>
+                  <td>----------</td>
+                </tr>`
+
+        data.forEach(item => {
+          const id = item.id;
+          const title = item.title;
+          const price = item.price;
+          menu += `<tr><td><a href="/menu_item/${id}/" style="display: inline;">${title}</a></td>
+                  <td><span class="menu-price">$ ${price}</span></td></tr>`
+        });
+
+        document.getElementById("menu").innerHTML = menu
+      })
+  }
+
+  document.getElementById('form-post').addEventListener('click', function (e) {
+    e.preventDefault();
+    const authToken = localStorage.getItem("auth-token");
+    const title = document.getElementById("title").value;
+    const price = document.getElementById("price").value;
+    const inventory = document.getElementById("inventory").value;
+    const errorBox = document.getElementById("form-post-error");
+
+    errorBox.innerText = "";
+
+    if (!title || !price || !inventory) {
+      errorBox.innerText = "Ensure All the Fields are Filled";
+      return;
+    }
+
+    fetch(`${apiDomain}/api/menu-items/`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Token ${authToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        title: title,
+        price: price,
+        inventory: inventory
+      }),
+    })
+      .then(response => {
+        if (response.status === 201) {
+          getMenu();
+          return;
+        } else {
+          errorBox.innerText = "Error: Item Couldn't be Added";
+          throw new Error(`Failed to Add. Status code: ${response.status}`);
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+      });
+  });
+</script>
+{% endblock %}
